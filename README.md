@@ -2,9 +2,14 @@
 
 ## Table of Contents
 
+-   [Getting Started](#getting-started)
 -   [LICENSE](#license)
 
----
+## Getting Started
+
+```bash
+uvicorn app.main:app --reload
+```
 
 ## LICENSE
 
