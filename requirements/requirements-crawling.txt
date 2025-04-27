@@ -1,0 +1,10 @@
+pandas
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+requests
+beautifulsoup4
+pyyaml
+cryptography
+python-dotenv
