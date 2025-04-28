@@ -1,0 +1,148 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 1.25rem;
+    background-color: #f4f4f4;
+    font-size: 1rem;
+    overflow: hidden;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+#datePicker {
+    display: block;
+    margin: 0 auto 1rem auto;
+    padding: 0.3125rem 0.625rem;
+    font-size: 1rem;
+}
+
+#calendar-container {
+    border: 1px solid #ccc;
+    background-color: white;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.facility-header {
+    display: flex;
+    width: 100%;
+    border-bottom: 2px solid #333;
+    background-color: #e0e0e0;
+}
+
+.time-label-header {
+    width: 3.75rem;
+}
+
+.facility-title {
+    flex: 1;
+    text-align: center;
+    font-weight: bold;
+    padding: 0.625rem 0;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+.calendar-body {
+    display: flex;
+    height: 48.75rem;
+    overflow-y: auto;
+}
+
+.time-labels {
+    width: 3.75rem;
+    flex-shrink: 0;
+}
+
+.time-label {
+    height: 3.75rem;
+    border-bottom: 1px solid #ddd;
+    font-size: 0.75rem;
+    text-align: right;
+    padding-right: 0.3125rem;
+    box-sizing: border-box;
+}
+
+.facility-columns {
+    display: flex;
+    flex-grow: 1;
+}
+
+.facility {
+    flex: 1;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    position: relative;
+    height: 48.75rem;
+    overflow: hidden;
+}
+
+/* Hour line divs */
+.hour-line {
+    height: 3.75rem;
+    border-bottom: 1px solid #bbb;
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 0;
+}
+
+/* Event Blocks */
+.event-block {
+    background-color: rgba(0, 123, 255, 0.7);
+    color: white;
+    border-radius: 0.25rem;
+    left: 0.3125rem;
+    right: 0.3125rem;
+    padding: 0.125rem;
+    overflow: hidden;
+    cursor: pointer;
+    position: absolute;
+    z-index: 1;
+    font-size: 0.75rem;
+
+    /* Center text horizontally and vertically */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    text-align: center;
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+}
+
+.dots::after {
+    content: '';
+    display: inline-block;
+    width: 1em;
+    text-align: left;
+    animation: dots 1s steps(3, end) infinite;
+}
+
+@keyframes dots {
+    0%, 20% { content: ''; }
+    40% { content: '.'; }
+    60% { content: '..'; }
+    80%, 100% { content: '...'; }
+}
+
+#popup-detail {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: white;
+    border: 1px solid #ccc;
+    padding: 1rem;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    width: 18rem;
+    text-align: left;
+}
