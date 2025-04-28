@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from config.db import engine
 from models import Base
 from controllers import reservation_controller
+from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -16,6 +17,14 @@ async def lifespan(app: FastAPI):
     # 🔻 Shutdown: Nothing for now
 
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 실제 배포시 도메인을 명시 (개발용: ["*"])
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(reservation_controller.router)
 

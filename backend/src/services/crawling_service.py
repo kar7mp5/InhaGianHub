@@ -1,3 +1,4 @@
+from datetime import datetime
 import requests
 import re
 import time
@@ -9,8 +10,6 @@ from utils.config_loader import load_facility_config
 
 BASE_URL = "https://www.inha.ac.kr"
 PRINT_URL_TEMPLATE = BASE_URL + "/facility/kr/facilityPrint.do?seq={seq}&req={req}"
-
-from datetime import datetime
 
 def format_date(raw_date: str) -> str:
     """
@@ -24,30 +23,43 @@ def format_date(raw_date: str) -> str:
     """
     start_date = raw_date.split('~')[0].strip()
     try:
-        formatted_date = datetime.strptime(start_date, "%Y%m%d").strftime("%Y-%m-%d")
-        return formatted_date
+        return datetime.strptime(start_date, "%Y%m%d").strftime("%Y-%m-%d")
     except ValueError:
-        print(f"❌ Invalid date format: {raw_date}")
-        return start_date  # Fallback to raw if parsing fails
+        return start_date
 
 def fetch_with_retry(url, max_retries=3, delay=2):
-    """Fetch URL content with retry logic."""
+    """
+    Fetch URL content with retry logic.
+
+    Args:
+        url (str): Target URL to fetch.
+        max_retries (int): Number of retry attempts.
+        delay (int): Delay between retries in seconds.
+
+    Returns:
+        str or None: HTML content if successful, else None.
+    """
     headers = {"User-Agent": "Mozilla/5.0"}
     for attempt in range(1, max_retries + 1):
         try:
             response = requests.get(url, headers=headers, timeout=5)
             if response.status_code == 200:
                 return response.text
-            else:
-                print(f"⚠️ Attempt {attempt}: Status {response.status_code}")
-        except Exception as e:
-            print(f"⚠️ Attempt {attempt} failed: {e}")
+        except Exception:
+            pass
         time.sleep(delay)
-    print(f"❌ Failed to fetch {url} after {max_retries} attempts.")
     return None
 
 def generate_print_link(a_tag):
-    """Generate print link from anchor tag."""
+    """
+    Generate print link from anchor tag.
+
+    Args:
+        a_tag (Tag): BeautifulSoup anchor tag.
+
+    Returns:
+        str or None: Generated print URL or None.
+    """
     if not a_tag:
         return None
     href = a_tag.get('href')
@@ -58,11 +70,18 @@ def generate_print_link(a_tag):
     return None
 
 def parse_reservation_table(html_content):
-    """Parse reservation table from HTML."""
+    """
+    Parse reservation table from HTML content.
+
+    Args:
+        html_content (str): HTML content containing reservation table.
+
+    Returns:
+        list: List of reservation rows.
+    """
     soup = BeautifulSoup(html_content, 'html.parser')
     table = soup.find('table')
     if not table:
-        print("❌ Reservation table not found.")
         return []
 
     rows = []
@@ -75,7 +94,15 @@ def parse_reservation_table(html_content):
     return rows
 
 def fetch_popup_details(print_url):
-    """Fetch detailed popup data as dictionary."""
+    """
+    Fetch detailed popup data as dictionary.
+
+    Args:
+        print_url (str): URL for the popup details.
+
+    Returns:
+        dict: Key-value pairs from the popup table.
+    """
     details = {}
     if not print_url:
         return details
@@ -100,61 +127,73 @@ def fetch_popup_details(print_url):
 
 def crawl_facility_reservations(db: Session, facility_name: str) -> dict:
     """
-    Crawl reservation data for a specific facility, insert new records, and update existing ones if changed.
+    Crawl reservation data for a specific facility and store it in the database.
 
     Args:
         db (Session): SQLAlchemy database session.
         facility_name (str): Name of the facility to crawl.
 
     Returns:
-        dict: Summary of the crawling process including status, number of saved records, and updates.
+        dict: Summary of the crawling process including counts.
     """
     config = load_facility_config()
     target_url = config.get(facility_name)
 
     if not target_url:
-        return {"status": "error", "reason": f"No URL configured for facility: {facility_name}"}
+        return {"status": "error", "reason": f"No URL configured for {facility_name}"}
 
     html_content = fetch_with_retry(target_url)
     if not html_content:
-        return {"status": "error", "reason": "Failed to fetch the main page"}
+        return {"status": "error", "reason": "Failed to fetch facility page"}
 
     reservations = parse_reservation_table(html_content)
     if not reservations:
-        return {"status": "ok", "saved_count": 0, "updated_count": 0}
+        return {
+            "status": "ok",
+            "facility": facility_name,
+            "total_found": 0,
+            "saved_count": 0,
+            "updated_count": 0,
+            "skipped_count": 0,
+            "message": "No reservations found."
+        }
 
     saved_count = 0
     updated_count = 0
+    skipped_count = 0
 
     for res in reservations:
+        # Direct unpacking without validation (initial approach)
         date_range, place, department, event, approval, print_link = res
+
         date = format_date(date_range)
 
-        # Check if the reservation already exists
         existing = db.query(Reservation).filter_by(
             facility_name=facility_name,
             date=date,
             place=place,
-            department=department,
             event=event
         ).first()
 
         if existing:
-            # Update if approval status or print link has changed
-            updated = False
+            is_updated = False
+            if existing.department != department:
+                existing.department = department
+                is_updated = True
             if existing.approval != approval:
                 existing.approval = approval
-                updated = True
+                is_updated = True
             if existing.print_link != (print_link or ""):
                 existing.print_link = print_link or ""
-                updated = True
+                is_updated = True
 
-            if updated:
+            if is_updated:
                 db.commit()
                 updated_count += 1
+            else:
+                skipped_count += 1
             continue
 
-        # Insert new reservation if not exists
         reservation_entry = Reservation(
             facility_name=facility_name,
             date=date,
@@ -168,21 +207,24 @@ def crawl_facility_reservations(db: Session, facility_name: str) -> dict:
         db.commit()
         db.refresh(reservation_entry)
 
-        # Fetch and store popup details
-        popup_data = fetch_popup_details(print_link)
-        for key, value in popup_data.items():
-            db.add(PopupDetail(
-                reservation_id=reservation_entry.id,
-                key=key,
-                value=value
-            ))
-        db.commit()
+        if print_link:
+            popup_data = fetch_popup_details(print_link)
+            for key, value in popup_data.items():
+                db.add(PopupDetail(
+                    reservation_id=reservation_entry.id,
+                    key=key,
+                    value=value
+                ))
+            db.commit()
+
         saved_count += 1
 
     return {
         "status": "ok",
+        "facility": facility_name,
+        "total_found": len(reservations),
         "saved_count": saved_count,
         "updated_count": updated_count,
-        "message": f"{saved_count} new reservations saved, {updated_count} reservations updated."
+        "skipped_count": skipped_count,
+        "message": f"{facility_name}: {saved_count} saved, {updated_count} updated, {skipped_count} skipped."
     }
-
