@@ -1,0 +1,39 @@
+# Ignore Python cache files and folders
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore virtual environment directories
+venv/
+.env/
+
+# Ignore Docker and Git configuration files
+.dockerignore
+Dockerfile
+docker-compose.yml
+.git
+.gitignore
+
+# Ignore IDE and editor settings
+.vscode/
+.idea/
+
+# Ignore log and temporary files
+*.log
+*.tmp
+*.swp
+
+# Ignore database volume data (managed by Docker volumes)
+db/data/
+
+# Ignore personal or environment-specific configuration files
+*.yaml
+*.yml
+
+# Ignore macOS system files
+.DS_Store
+
+# Ignore local testing and crawling scripts
+crawling/
+tests/
