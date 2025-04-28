@@ -100,29 +100,38 @@ def fetch_popup_details(print_url):
 
 def crawl_facility_reservations(db: Session, facility_name: str) -> dict:
     """
-    Crawl reservation data and return result summary.
+    Crawl reservation data for a specific facility, insert new records, and update existing ones if changed.
+
+    Args:
+        db (Session): SQLAlchemy database session.
+        facility_name (str): Name of the facility to crawl.
+
+    Returns:
+        dict: Summary of the crawling process including status, number of saved records, and updates.
     """
     config = load_facility_config()
     target_url = config.get(facility_name)
 
     if not target_url:
-        return {"status": "error", "reason": f"No URL for {facility_name}"}
+        return {"status": "error", "reason": f"No URL configured for facility: {facility_name}"}
 
     html_content = fetch_with_retry(target_url)
     if not html_content:
-        return {"status": "error", "reason": "Failed to fetch main page"}
+        return {"status": "error", "reason": "Failed to fetch the main page"}
 
     reservations = parse_reservation_table(html_content)
     if not reservations:
-        return {"status": "ok", "saved_count": 0}
+        return {"status": "ok", "saved_count": 0, "updated_count": 0}
 
     saved_count = 0
+    updated_count = 0
 
     for res in reservations:
         date_range, place, department, event, approval, print_link = res
         date = format_date(date_range)
 
-        exists = db.query(Reservation).filter_by(
+        # Check if the reservation already exists
+        existing = db.query(Reservation).filter_by(
             facility_name=facility_name,
             date=date,
             place=place,
@@ -130,9 +139,22 @@ def crawl_facility_reservations(db: Session, facility_name: str) -> dict:
             event=event
         ).first()
 
-        if exists:
+        if existing:
+            # Update if approval status or print link has changed
+            updated = False
+            if existing.approval != approval:
+                existing.approval = approval
+                updated = True
+            if existing.print_link != (print_link or ""):
+                existing.print_link = print_link or ""
+                updated = True
+
+            if updated:
+                db.commit()
+                updated_count += 1
             continue
 
+        # Insert new reservation if not exists
         reservation_entry = Reservation(
             facility_name=facility_name,
             date=date,
@@ -146,6 +168,7 @@ def crawl_facility_reservations(db: Session, facility_name: str) -> dict:
         db.commit()
         db.refresh(reservation_entry)
 
+        # Fetch and store popup details
         popup_data = fetch_popup_details(print_link)
         for key, value in popup_data.items():
             db.add(PopupDetail(
@@ -156,4 +179,10 @@ def crawl_facility_reservations(db: Session, facility_name: str) -> dict:
         db.commit()
         saved_count += 1
 
-    return {"status": "ok", "saved_count": saved_count}
+    return {
+        "status": "ok",
+        "saved_count": saved_count,
+        "updated_count": updated_count,
+        "message": f"{saved_count} new reservations saved, {updated_count} reservations updated."
+    }
+
