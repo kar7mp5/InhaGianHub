@@ -1,45 +1,43 @@
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-# © 2025 MinSup Kim
-
 version: '3.8'
 
 services:
   db:
-    image: mysql:8.0
-    container_name: mysql_db
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: inha_facility
-      MYSQL_USER: inhadev
-      MYSQL_PASSWORD: 1478
+    image: mariadb:10
+    container_name: db
     ports:
       - "3306:3306"
     volumes:
-      - db_data:/var/lib/mysql
-    command: --default-authentication-plugin=mysql_native_password
+      - ./db/conf.d:/etc/mysql/conf.d
+      - ./db/data:/var/lib/mysql
+      - ./db/initdb.d:/docker-entrypoint-initdb.d
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: Asia/Seoul
+    networks:
+      - backend
+    restart: always
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
-  web:
-    build:
-      context: ./app
-    container_name: fastapi_app
+
+  backend:
+    build: ./backend/app
+    container_name: backend
+    command: uvicorn main:app --reload --host 0.0.0.0 --port 8000
+    volumes:
+      - ./backend/app:/usr/src/app
     ports:
       - "8000:8000"
+    env_file: .env
+    networks:
+      - backend
     depends_on:
-      - db
-    env_file:
-      - .env
-    restart: always
+      db:
+        condition: service_healthy
 
-volumes:
-  db_data:
+networks:
+  backend:
