@@ -1,7 +1,61 @@
-# Python
-venv/
+# Byte-compiled / optimized / DLL files
 __pycache__/
+*.py[cod]
+*.pyo
+*.pyd
 
-# Environment Parameters
-*.log
+# Environment variables and secrets
+.env
 *.env
+
+# SQLite database files
+*.sqlite3
+
+# Log files
+*.log
+logs/
+
+# Pydantic, MyPy, Pytest cache
+.mypy_cache/
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# VSCode settings
+.vscode/
+
+# PyCharm settings
+.idea/
+
+# Docker-related files and folders
+db/data/              # Database volume data
+db/*.cnf              # Custom DB config files
+docker-compose.override.yml
+*.pid                 # Process ID files
+
+# Test and coverage reports
+htmlcov/
+.tox/
+.coverage
+coverage.xml
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# System files
+.DS_Store             # macOS
+Thumbs.db             # Windows
+
+# Backup files
+config.yaml.backup
+
+# CSV data exports
+*.csv
+
+# Temporary files
+*.swp                 # Swap files from editors
