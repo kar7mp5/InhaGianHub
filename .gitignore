@@ -32,7 +32,6 @@ env/
 
 # Docker-related files and folders
 db/data/              # Database volume data
-db/*.cnf              # Custom DB config files
 docker-compose.override.yml
 *.pid                 # Process ID files
 
