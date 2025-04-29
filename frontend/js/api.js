@@ -1,3 +1,5 @@
+const API_BASE = "http://localhost:8000";
+
 async function fetchReservations(date) {
     try {
         const response = await fetch(`${API_BASE}/reservations?date=${date}`);
