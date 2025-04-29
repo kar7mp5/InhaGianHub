@@ -1,8 +1,10 @@
-pandas
 fastapi
 uvicorn
+
 sqlalchemy
-pymysql
+psycopg2-binary    # PostgreSQL driver
+
+pandas
 requests
 beautifulsoup4
 pyyaml

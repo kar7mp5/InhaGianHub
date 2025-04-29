@@ -12,6 +12,6 @@ class Reservation(Base):
     department = Column(String(100))
     event = Column(String(200))
     approval = Column(String(20))
-    print_link = Column(Text)   # <-- 여기 Text로 변경!
+    print_link = Column(Text)
     
     popup_details = relationship("PopupDetail", back_populates="reservation")

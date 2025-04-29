@@ -9,7 +9,7 @@ class ReservationResponse(BaseModel):
     department: str
     event: str
     approval: str
-    print_link: Optional[str]  # <-- 여기! None 허용
+    print_link: Optional[str]
 
     class Config:
-        from_attributes = True  # Pydantic v2 대응
+        from_attributes = True

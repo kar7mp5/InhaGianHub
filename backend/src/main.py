@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from config.db import engine
+from config.config import BASE_URL
 from models import Base
 from controllers import reservation_controller
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,7 +23,7 @@ def background_scheduler():
         for facility in FACILITIES:
             try:
                 # Internal API call for each facility
-                requests.post(f"http://localhost:8000/crawl/{facility}")
+                requests.post(f"http://{BASE_URL}:8000/crawl/{facility}")
             except Exception as e:
                 print(f"Error crawling {facility}: {e}")
         print("[Scheduler] Crawling completed.")
