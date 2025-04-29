@@ -1,5 +1,3 @@
-const API_BASE = "http://localhost:8000";
-
 async function fetchReservations(date) {
     try {
         const response = await fetch(`${API_BASE}/reservations?date=${date}`);
@@ -7,7 +5,7 @@ async function fetchReservations(date) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
         const data = await response.json();
-        console.log("Fetched reservations:", data); // 데이터 확인용 로그 추가
+        console.log("Fetched reservations:", data);
         return data;
     } catch (error) {
         console.error("Error fetching reservations:", error);
