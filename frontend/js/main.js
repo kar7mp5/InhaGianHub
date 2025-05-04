@@ -1,17 +1,16 @@
-const FACILITIES = ["대강당", "중강당", "소강당", "5남소강당"];
-
 document.addEventListener("DOMContentLoaded", () => {
-    generateTimeLabels();     
-    generateHourLines();      
+    generateTimeLabels();
+    generateHourLines();
 
     const datePicker = document.getElementById("datePicker");
-    datePicker.valueAsDate = new Date();  
-    loadSchedule();  
+    datePicker.valueAsDate = new Date();
+    loadSchedule();
+
     datePicker.addEventListener("change", loadSchedule);
 });
 
 /**
- * Generate time labels for the left side.
+ * Generates vertical time labels from 9:00 to 22:00.
  */
 function generateTimeLabels() {
     const timeLabels = document.querySelector(".time-labels");
@@ -24,35 +23,33 @@ function generateTimeLabels() {
 }
 
 /**
- * Generate 13 hour lines inside each facility column.
+ * Generates horizontal hour lines inside each facility column.
  */
 function generateHourLines() {
-    const facilities = document.querySelectorAll('.facility');
+    const facilities = document.querySelectorAll(".facility");
     facilities.forEach(facility => {
         for (let i = 0; i < 13; i++) {
-            const line = document.createElement('div');
-            line.className = 'hour-line';
+            const line = document.createElement("div");
+            line.className = "hour-line";
             facility.appendChild(line);
         }
     });
 }
 
 /**
- * Main function to load schedule data.
+ * Loads reservations for the selected date and renders them on the UI.
  */
 async function loadSchedule() {
     const date = document.getElementById("datePicker").value;
     if (!date) return;
 
-    clearFacilities();  
+    clearFacilities();
     document.getElementById("loading").style.display = "block";
 
     try {
-        for (const facility of FACILITIES) {
-            await fetch(`${API_BASE}/crawl/${encodeURIComponent(facility)}`, { method: 'POST' });
-        }
-
-        const data = await fetchReservations(date);
+        // Load reservations only (no live crawling)
+        const response = await fetch(`${API_BASE}/reservations?date=${date}`);
+        const data = await response.json();
 
         if (!data.success) {
             console.error("Failed to fetch reservations:", data.error);
@@ -62,10 +59,16 @@ async function loadSchedule() {
         const reservations = data.data;
 
         for (const reservation of reservations) {
-            const detailsResponse = await fetch(`${API_BASE}/reservations/${reservation.id}/details`);
-            const detailsJson = await detailsResponse.json();
+            let { start_time, end_time } = reservation;
 
-            const { start_time, end_time } = extractTimeDetails(detailsJson.data);
+            // Fallback to popup detail if time is missing
+            if (!start_time || !end_time) {
+                const detailsRes = await fetch(`${API_BASE}/reservations/${reservation.id}/details`);
+                const detailsJson = await detailsRes.json();
+                const times = extractTimeDetails(detailsJson.data);
+                start_time = times.start_time;
+                end_time = times.end_time;
+            }
 
             if (!start_time || !end_time) {
                 console.warn(`Missing time info for reservation ID ${reservation.id}`);
@@ -79,15 +82,15 @@ async function loadSchedule() {
             });
         }
 
-    } catch (error) {
-        console.error("Error during crawling or fetching schedule:", error);
+    } catch (err) {
+        console.error("Error loading schedule:", err);
     } finally {
         document.getElementById("loading").style.display = "none";
     }
 }
 
 /**
- * Remove only event blocks, keep hour lines.
+ * Removes all event blocks from the screen.
  */
 function clearFacilities() {
     document.querySelectorAll(".facility .event-block").forEach(e => e.remove());
@@ -95,7 +98,10 @@ function clearFacilities() {
 }
 
 /**
- * Extract start_time and end_time from details array.
+ * Extracts start_time and end_time from popup details (already in English keys).
+ * 
+ * @param {Array} dataArray - Array of {key, value} pairs
+ * @returns {{ start_time: string | null, end_time: string | null }}
  */
 function extractTimeDetails(dataArray) {
     let start_time = null;
@@ -108,11 +114,14 @@ function extractTimeDetails(dataArray) {
             end_time = item.value;
         }
     }
+
     return { start_time, end_time };
 }
 
 /**
- * Render reservation block with centered text and safe click.
+ * Renders a reservation block at the correct time position on the UI.
+ *
+ * @param {Object} event - Reservation object with time and metadata.
  */
 function renderEventBlock(event) {
     const facilityDiv = document.querySelector(`.facility[data-name='${event.facility_name}']`);
@@ -122,20 +131,20 @@ function renderEventBlock(event) {
     block.className = "event-block";
     block.textContent = event.event;
 
-    const startTime = event.start_time.split(':').map(Number);
-    const endTime = event.end_time.split(':').map(Number);
+    const [startH, startM] = event.start_time.split(":").map(Number);
+    const [endH, endM] = event.end_time.split(":").map(Number);
 
-    const topPosition = ((startTime[0] - 9) * 60) + startTime[1];
-    const height = ((endTime[0] - startTime[0]) * 60) + (endTime[1] - startTime[1]);
+    const top = ((startH - 9) * 60) + startM;
+    const height = ((endH - startH) * 60) + (endM - startM);
 
-    block.style.top = `${topPosition}px`;
+    block.style.top = `${top}px`;
     block.style.height = `${height}px`;
 
     block.addEventListener("click", async (e) => {
-        e.preventDefault();   // Prevent any default behavior
-        const detailsResponse = await fetch(`${API_BASE}/reservations/${event.id}/details`);
-        const detailsJson = await detailsResponse.json();
-        showPopupDetail(detailsJson.data);
+        e.preventDefault();
+        const res = await fetch(`${API_BASE}/reservations/${event.id}/details`);
+        const json = await res.json();
+        showPopupDetail(json.data);
     });
 
     facilityDiv.appendChild(block);
