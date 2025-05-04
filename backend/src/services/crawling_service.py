@@ -1,230 +1,228 @@
-from datetime import datetime
 import requests
 import re
 import time
 from bs4 import BeautifulSoup
-from sqlalchemy.orm import Session
-from models.reservation_model import Reservation
-from models.popup_detail_model import PopupDetail
-from utils.config_loader import load_facility_config
+from datetime import datetime
+from firebase import db
+from cruds.firestore_dao import (
+    upsert_reservation,
+    find_reservation,
+    add_popup_details,
+    sync_reservations,
+)
 
 BASE_URL = "https://www.inha.ac.kr"
 PRINT_URL_TEMPLATE = BASE_URL + "/facility/kr/facilityPrint.do?seq={seq}&req={req}"
 
+# Mapping Korean keys to English
+KEY_TRANSLATION = {
+    "장소": "place",
+    "일시": "datetime_range",
+    "대여물품": "rental_items",
+    "부서명": "department",
+    "행사명": "event",
+    "단체명": "organization",
+    "승인여부": "approval",
+    "start_time": "start_time",
+    "end_time": "end_time"
+}
+
+
 def format_date(raw_date: str) -> str:
-    """
-    Convert date range string to 'YYYY-MM-DD' format.
+    """Converts raw date like '20250514' to '2025-05-14'.
 
     Args:
-        raw_date (str): Date string in format 'YYYYMMDD ~ YYYYMMDD'.
+        raw_date: Raw date string from table.
 
     Returns:
-        str: Formatted date as 'YYYY-MM-DD'.
+        Formatted date string or original if format fails.
     """
-    start_date = raw_date.split('~')[0].strip()
     try:
-        return datetime.strptime(start_date, "%Y%m%d").strftime("%Y-%m-%d")
+        return datetime.strptime(raw_date.split("~")[0].strip(), "%Y%m%d").strftime("%Y-%m-%d")
     except ValueError:
-        return start_date
+        return raw_date
 
-def fetch_with_retry(url, max_retries=3, delay=2):
-    """
-    Fetch URL content with retry logic.
+
+def fetch_with_retry(url: str, max_retries: int = 3, delay: int = 2) -> str:
+    """Tries to fetch a page with retry logic.
 
     Args:
-        url (str): Target URL to fetch.
-        max_retries (int): Number of retry attempts.
-        delay (int): Delay between retries in seconds.
+        url: Target URL to fetch.
+        max_retries: Number of retries.
+        delay: Delay between retries in seconds.
 
     Returns:
-        str or None: HTML content if successful, else None.
+        HTML string if successful, None otherwise.
     """
-    headers = {"User-Agent": "Mozilla/5.0"}
-    for attempt in range(1, max_retries + 1):
+    for _ in range(max_retries):
         try:
-            response = requests.get(url, headers=headers, timeout=5)
-            if response.status_code == 200:
-                return response.text
+            res = requests.get(url, timeout=5)
+            if res.status_code == 200:
+                return res.text
         except Exception:
-            pass
-        time.sleep(delay)
+            time.sleep(delay)
     return None
 
-def generate_print_link(a_tag):
-    """
-    Generate print link from anchor tag.
+
+def generate_print_link(a_tag) -> str:
+    """Generates print link from anchor tag.
 
     Args:
-        a_tag (Tag): BeautifulSoup anchor tag.
+        a_tag: BeautifulSoup anchor tag.
 
     Returns:
-        str or None: Generated print URL or None.
+        Print URL or None.
     """
     if not a_tag:
         return None
-    href = a_tag.get('href')
+    href = a_tag.get("href")
     match = re.search(r"jf_facilityPrint\('(\d+)',\s*'(\d+)'\)", href)
     if match:
         seq, req = match.groups()
         return PRINT_URL_TEMPLATE.format(seq=seq, req=req)
     return None
 
-def parse_reservation_table(html_content):
-    """
-    Parse reservation table from HTML content.
+
+def parse_reservation_table(html: str) -> list:
+    """Parses reservation table rows from HTML.
 
     Args:
-        html_content (str): HTML content containing reservation table.
+        html: Page HTML.
 
     Returns:
-        list: List of reservation rows.
+        List of reservation row values and print links.
     """
-    soup = BeautifulSoup(html_content, 'html.parser')
-    table = soup.find('table')
+    soup = BeautifulSoup(html, "html.parser")
+    table = soup.find("table")
     if not table:
         return []
-
     rows = []
-    for row in table.find('tbody').find_all('tr'):
-        cols = row.find_all('td')
+    for row in table.find("tbody").find_all("tr"):
+        cols = row.find_all("td")
         values = [col.get_text(strip=True) for col in cols[:-1]]
-        a_tag = cols[-1].find('a')
-        print_link = generate_print_link(a_tag)
+        print_link = generate_print_link(cols[-1].find("a"))
         rows.append(values + [print_link])
     return rows
 
-def fetch_popup_details(print_url):
-    """
-    Fetch detailed popup data as dictionary.
+
+def fetch_popup_details(print_url: str) -> dict:
+    """Fetches and parses popup details from print link.
 
     Args:
-        print_url (str): URL for the popup details.
+        print_url: URL to fetch popup detail from.
 
     Returns:
-        dict: Key-value pairs from the popup table.
+        Dictionary with English key-value pairs.
     """
-    details = {}
     if not print_url:
-        return details
+        return {}
 
     html = fetch_with_retry(print_url)
     if not html:
-        return details
+        return {}
 
-    soup = BeautifulSoup(html, 'html.parser')
-    table = soup.find('table', attrs={'width': '600px'})
-    if not table:
-        return details
+    soup = BeautifulSoup(html, "html.parser")
+    table = soup.find("table", attrs={"width": "600px"})
 
-    for row in table.find_all('tr'):
-        th = row.find('th')
-        td = row.find('td')
-        if th and td:
-            key = th.get_text(strip=True)
-            value = td.get_text(separator=' ', strip=True)
-            details[key] = value
-    return details
+    data = {}
+    for row in table.find_all("tr"):
+        if row.find("th") and row.find("td"):
+            key = row.find("th").text.strip()
+            value = row.find("td").text.strip()
+            eng_key = KEY_TRANSLATION.get(key, key)  # fallback to original if unmapped
+            data[eng_key] = value
 
-def crawl_facility_reservations(db: Session, facility_name: str) -> dict:
-    """
-    Crawl reservation data for a specific facility and store it in the database.
+    # Extract start_time and end_time from datetime_range
+    raw_time = data.get("datetime_range", "").replace("\n", "").replace("\t", "").strip()
+    match = re.search(r"\d{8} ~ \d{8}\s*(\d{2}:\d{2}) ~ (\d{2}:\d{2})", raw_time)
+    if match:
+        data["start_time"] = match.group(1)
+        data["end_time"] = match.group(2)
+
+    return data
+
+
+def crawl_facility_reservations(db_unused, facility_name: str) -> dict:
+    """Main logic to crawl reservations and sync with Firestore.
 
     Args:
-        db (Session): SQLAlchemy database session.
-        facility_name (str): Name of the facility to crawl.
+        db_unused: Placeholder for DB context.
+        facility_name: Facility name to crawl.
 
     Returns:
-        dict: Summary of the crawling process including counts.
+        Dictionary with crawling stats.
     """
-    config = load_facility_config()
-    target_url = config.get(facility_name)
+    from utils.config_loader import load_facility_config
 
-    if not target_url:
+    config = load_facility_config()
+    url = config.get(facility_name)
+    if not url:
         return {"status": "error", "reason": f"No URL configured for {facility_name}"}
 
-    html_content = fetch_with_retry(target_url)
-    if not html_content:
-        return {"status": "error", "reason": "Failed to fetch facility page"}
+    html = fetch_with_retry(url)
+    if not html:
+        return {"status": "error", "reason": "Failed to fetch page"}
 
-    reservations = parse_reservation_table(html_content)
-    if not reservations:
-        return {
-            "status": "ok",
-            "facility": facility_name,
-            "total_found": 0,
-            "saved_count": 0,
-            "updated_count": 0,
-            "skipped_count": 0,
-            "message": "No reservations found."
-        }
-
+    rows = parse_reservation_table(html)
     saved_count = 0
     updated_count = 0
     skipped_count = 0
+    crawled_ids = set()
 
-    for res in reservations:
-        # Direct unpacking without validation (initial approach)
-        date_range, place, department, event, approval, print_link = res
+    if not rows:
+        return {
+            "status": "ok",
+            "facility": facility_name,
+            "saved_count": 0,
+            "updated_count": 0,
+            "skipped_count": 0,
+            "deleted_count": 0,
+        }
 
-        date = format_date(date_range)
+    for row in rows:
+        raw_date, place, department, event, approval, print_link = row
+        date = format_date(raw_date)
 
-        existing = db.query(Reservation).filter_by(
-            facility_name=facility_name,
-            date=date,
-            place=place,
-            event=event
-        ).first()
+        doc_id, existing = find_reservation(facility_name, date, place, event)
+
+        doc_data = {
+            "facility_name": facility_name,
+            "date": date,
+            "place": place,
+            "department": department,
+            "event": event,
+            "approval": approval,
+            "print_link": print_link or ""
+        }
+
+        if print_link:
+            fetch_popup_details(print_link)
+        else:
+            popup_data = {}
+
+        doc_id_final = doc_id if existing else f"{facility_name}_{date}_{place}_{event}"
+        crawled_ids.add(doc_id_final)
 
         if existing:
-            is_updated = False
-            if existing.department != department:
-                existing.department = department
-                is_updated = True
-            if existing.approval != approval:
-                existing.approval = approval
-                is_updated = True
-            if existing.print_link != (print_link or ""):
-                existing.print_link = print_link or ""
-                is_updated = True
-
-            if is_updated:
-                db.commit()
+            if any(existing.get(k) != doc_data.get(k) for k in doc_data):
+                upsert_reservation(doc_id_final, doc_data)
                 updated_count += 1
             else:
                 skipped_count += 1
-            continue
+        else:
+            upsert_reservation(doc_id_final, doc_data)
+            if popup_data:
+                add_popup_details(doc_id_final, popup_data)
+            saved_count += 1
 
-        reservation_entry = Reservation(
-            facility_name=facility_name,
-            date=date,
-            place=place,
-            department=department,
-            event=event,
-            approval=approval,
-            print_link=print_link or ""
-        )
-        db.add(reservation_entry)
-        db.commit()
-        db.refresh(reservation_entry)
-
-        if print_link:
-            popup_data = fetch_popup_details(print_link)
-            for key, value in popup_data.items():
-                db.add(PopupDetail(
-                    reservation_id=reservation_entry.id,
-                    key=key,
-                    value=value
-                ))
-            db.commit()
-
-        saved_count += 1
+    latest_date = format_date(rows[0][0])
+    deleted_count = sync_reservations(facility_name, latest_date, crawled_ids)
 
     return {
         "status": "ok",
         "facility": facility_name,
-        "total_found": len(reservations),
         "saved_count": saved_count,
         "updated_count": updated_count,
         "skipped_count": skipped_count,
-        "message": f"{facility_name}: {saved_count} saved, {updated_count} updated, {skipped_count} skipped."
+        "deleted_count": deleted_count,
     }

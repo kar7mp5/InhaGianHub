@@ -1,12 +1,19 @@
-fastapi
-uvicorn
+fastapi[standard]
+uvicorn[standard]
 
-sqlalchemy
-psycopg2-binary    # PostgreSQL driver
+# Firebase
+firebase-admin >= 6.0.0
+google-cloud-firestore>=2.11.0
 
-pandas
-requests
+# Web scraping
 beautifulsoup4
+requests
+
+# YAML config loader
 pyyaml
-cryptography
+
+# Python type checking
+pydantic
+
 python-dotenv
+apscheduler
