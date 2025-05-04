@@ -35,7 +35,7 @@ def crawl_facility(facility_name: str):
     }
 
 
-@router.get("/reservations")
+@router.get("/api/reservations")
 def get_reservations(facility_name: str = None, date: str = None):
     """Get all reservations, optionally filtered by facility name and date.
     Also parses '일시' field to extract start_time and end_time.
@@ -68,7 +68,7 @@ def get_reservations(facility_name: str = None, date: str = None):
         }
 
 
-@router.get("/reservations/{reservation_id}/details")
+@router.get("/api/reservations/{reservation_id}/details")
 def get_popup_details(reservation_id: str):
     details = get_popup_details_by_reservation_id(reservation_id)
     if not details:
@@ -98,7 +98,7 @@ def get_popup_details(reservation_id: str):
 
 
 
-@router.get("/popup-details/{reservation_id}")
+@router.get("/api/popup-details/{reservation_id}")
 def get_popup_details_raw(reservation_id: str):
     """Raw popup detail response by reservation ID (key-value dict).
 
