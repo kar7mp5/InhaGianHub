@@ -1,45 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Facility Schedule Viewer</title>
-    <link rel="stylesheet" href="css/style.css" />
-</head>
-<body>
-    <div id="main">
-        <h2 id="service-title">인하대학교 학생지원팀 시설물 사용 조회</h2>
-        <input type="date" id="datePicker" />
-        <div id="loading" class="loading-spinner" style="display:none;">Loading<span class="dots"></span></div>
-    
-        <div id="unknown-reservations">
-            <h2>🕓 시간 미상 예약</h2>
-            <div id="unknown-list"></div>
-        </div>
-        <div id="calendar-box">
-            <div id="calendar-container">
-                <div class="facility-header">
-                    <div class="time-label-header"></div>
-                    <div class="facility-title">대강당</div>
-                    <div class="facility-title">중강당</div>
-                    <div class="facility-title">소강당</div>
-                    <div class="facility-title">5남소강당</div>
-                </div>
-                <div class="calendar-body">
-                    <div class="time-labels"></div>
-                    <div class="facility-columns">
-                        <div class="facility" data-name="대강당"></div>
-                        <div class="facility" data-name="중강당"></div>
-                        <div class="facility" data-name="소강당"></div>
-                        <div class="facility" data-name="5남소강당"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-    <script src="js/config.js"></script>
-    <script src="js/main.js"></script>
-</body>
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + React + TS</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
