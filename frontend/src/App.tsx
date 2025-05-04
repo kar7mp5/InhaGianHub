@@ -106,7 +106,7 @@ const App: React.FC = () => {
 
   return (
     <div id="main">
-      <h2 id="service-title">인하대학교 학생지원팀 시설물 사용 조회 (강당전용)</h2>
+      <h2 id="service-title">인하대학교 학생지원팀 시설물 조회 (강당전용)</h2>
 
       <input type="date" id="datePicker" value={selectedDate} onChange={handleDateChange} />
 
@@ -136,7 +136,7 @@ const App: React.FC = () => {
           </div>
 
           <div className="calendar-body">
-            {/* ✅ Show only 9:00 ~ 22:00 time labels */}
+            {/* Show only 9:00 ~ 22:00 time labels */}
             <div className="time-labels">
               {Array.from({ length: 14 }, (_, i) => 9 + i).map(hour => (
                 <div key={hour} className="time-label">{`${hour}:00`}</div>
