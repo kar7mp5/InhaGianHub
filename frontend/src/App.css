@@ -1,147 +1,41 @@
+/* General layout */
 body {
   margin: 0;
+  font-family: Arial, sans-serif;
+  font-size: 1rem;
   height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  font-family: Arial, sans-serif;
-  font-size: 1rem;
-  background-color: white;
 }
 
 #main {
+  margin: 1rem 3rem;
   display: flex;
   flex-direction: column;
-  margin-left: 3rem;
-  margin-right: 3rem;
   flex-grow: 1;
 }
 
+/* Title */
 #service-title {
   text-align: center;
-  margin: 1rem 0 0.5rem 0;
+  margin-bottom: 1rem;
 }
 
+/* Date Picker */
 #datePicker {
   display: block;
   margin: 0 auto 1rem auto;
-  padding: 0.3125rem 0.625rem;
+  padding: 0.5rem 1rem;
   font-size: 1rem;
 }
 
-#calendar-box {
-  display: flex;
-  align-items: center;
-  flex-grow: 1;
-}
-
-#calendar-container {
-  flex: 1;
-  overflow: hidden;
-  min-height: 0;
-  border: 1px solid #ccc;
-  background-color: white;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-}
-
-.facility-header {
-  display: flex;
-  width: 100%;
-  border-bottom: 2px solid #333;
-  background-color: #e0e0e0;
-  flex-shrink: 0;
-}
-
-.time-label-header {
-  width: 3.75rem;
-  flex-shrink: 0;
-}
-
-.facility-title {
-  flex: 1 1 0;
-  text-align: center;
-  font-weight: bold;
-  padding: 0.625rem 0;
-  border-left: 1px solid #ccc;
-  border-right: 1px solid #ccc;
-  word-break: keep-all;
-  box-sizing: border-box;
-}
-
-.calendar-body {
-  display: flex;
-  width: 100%;
-  overflow: hidden;
-  flex-grow: 1;
-}
-
-.time-labels {
-  width: 3.75rem;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.time-label {
-  font-size: 0.75rem;
-  text-align: right;
-  padding-right: 0.3125rem;
-  border-bottom: 1px solid #ddd;
-  box-sizing: border-box;
-}
-
-.facility-columns {
-  display: flex;
-  flex-grow: 1;
-  width: 100%;
-}
-
-.facility {
-  flex: 1 1 0;
-  position: relative;
-  overflow: hidden;
-  border-left: 1px solid #ccc;
-  border-right: 1px solid #ccc;
-  display: flex;
-  flex-direction: column;
-}
-
-.hour-line {
-  border-bottom: 1px solid #bbb;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.facility .hour-line:last-child {
-  border-bottom: none;
-}
-
-.event-block {
-  background-color: rgba(0, 123, 255, 0.7);
-  color: white;
-  border-radius: 0.25rem;
-  left: 0.3125rem;
-  right: 0.3125rem;
-  padding: 0.125rem;
-  cursor: pointer;
-  position: absolute;
-  z-index: 1;
-  font-size: 0.75rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  box-sizing: border-box;
-}
-
-.loading-spinner {
+/* Loading Spinner */
+#loading {
   text-align: center;
   font-size: 1.125rem;
   margin-bottom: 1rem;
 }
-
 .dots::after {
   content: '';
   display: inline-block;
@@ -149,7 +43,6 @@ body {
   text-align: left;
   animation: dots 1s steps(3, end) infinite;
 }
-
 @keyframes dots {
   0%, 20% { content: ''; }
   40% { content: '.'; }
@@ -157,44 +50,120 @@ body {
   80%, 100% { content: '...'; }
 }
 
-#popup-detail {
-  position: fixed;
-  top: 20%;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: white;
-  border: 1px solid #ccc;
-  padding: 1rem;
-  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  width: 18rem;
-  text-align: left;
-}
-
+/* Unknown Reservations */
 #unknown-reservations {
   padding: 1rem;
   background-color: white;
-  box-sizing: border-box;
-  z-index: 1;
 }
-
 #unknown-reservations h2 {
   font-size: 1.125rem;
   margin-bottom: 0.75rem;
   color: #333;
 }
-
 #unknown-list .unknown-item {
   margin-bottom: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background-color: #eeeeee;
+  background-color: #f0f0f0;
   border-left: 0.25rem solid #999;
+  border-radius: 0.25rem;
   font-size: 0.875rem;
   color: #333;
-  border-radius: 0.25rem;
-  box-sizing: border-box;
 }
 
+/* Calendar Layout */
+#calendar-box {
+  flex-grow: 1;
+  display: flex;
+}
+#calendar-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 0.0625rem solid #ccc; /* 1px */
+  background-color: white;
+  overflow: hidden;
+}
+
+/* Facility Header */
+.facility-header {
+  display: flex;
+  background-color: #e0e0e0;
+  border-bottom: 0.125rem solid #333; /* 2px */
+}
+.time-label-header {
+  width: 3.75rem; /* 60px */
+  flex-shrink: 0;
+}
+.facility-title {
+  flex: 1;
+  text-align: center;
+  font-weight: bold;
+  padding: 0.625rem 0;
+  border-left: 0.0625rem solid #ccc;
+  border-right: 0.0625rem solid #ccc;
+}
+
+/* Calendar Body */
+.calendar-body {
+  flex-grow: 1;
+  display: flex;
+  overflow: hidden;
+}
+.time-labels {
+  width: 3.75rem;
+  display: flex;
+  flex-direction: column;
+}
+.time-label {
+  align-items: center;
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+  font-size: 0.75rem;
+  text-align: center;
+  border-bottom: 0.0625rem solid #ddd;
+}
+
+/* Facilities */
+.facility-columns {
+  display: flex;
+  flex-grow: 1;
+}
+.facility {
+  flex: 1;
+  position: relative;
+  border-left: 0.0625rem solid #ccc;
+  border-right: 0.0625rem solid #ccc;
+}
+
+/* Event Blocks */
+.reservation-block {
+  position: absolute;
+  left: 0.3rem;
+  right: 0.3rem;
+  background-color: rgba(0, 123, 255, 0.7);
+  color: white;
+  border-radius: 0.25rem;
+  padding: 0.125rem;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Optional: Highlight for 'pending' status */
+.reservation-block.pending {
+  background-color: rgba(255, 193, 7, 0.9);
+  color: #000;
+}
+
+.reservation-block.dg { background-color: rgba(0, 123, 255, 0.7); }     /* 대강당 */
+.reservation-block.jg { background-color: rgba(40, 167, 69, 0.7); }     /* 중강당 */
+.reservation-block.sg { background-color: rgba(255, 193, 7, 0.7); }     /* 소강당 */
+.reservation-block.n5 { background-color: rgba(220, 53, 69, 0.7); }     /* 5남소강당 */
+
+
+/* Box sizing */
 * {
   box-sizing: border-box;
 }
