@@ -2,8 +2,9 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
-from controllers import reservation_controller
-from services.crawling_service import crawl_facility_reservations
+
+from controllers import router
+from services import crawl_facility_reservations
 import traceback
 
 # List of facility names for periodic crawling
@@ -54,7 +55,7 @@ def create_app():
     )
 
     # Register application routers
-    app.include_router(reservation_controller.router)
+    app.include_router(router)
 
     @app.post("/crawl/{facility_name}")
     def crawl_facility(facility_name: str):

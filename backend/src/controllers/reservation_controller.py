@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from services.crawling_service import crawl_facility_reservations
-from cruds.firestore_dao import (
+from services import crawl_facility_reservations
+from cruds import (
     get_all_reservations,
     get_reservations_by_filter,
     get_popup_details_by_reservation_id

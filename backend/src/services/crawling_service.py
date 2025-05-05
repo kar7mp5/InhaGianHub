@@ -3,8 +3,8 @@ import re
 import time
 from bs4 import BeautifulSoup
 from datetime import datetime
-from firebase import db
-from cruds.firestore_dao import (
+
+from cruds import (
     upsert_reservation,
     find_reservation,
     add_popup_details,
