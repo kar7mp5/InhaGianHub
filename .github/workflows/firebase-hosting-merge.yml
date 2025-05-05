@@ -11,11 +11,13 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
-            - run: cd frontend && yarn install && yarn build
+            - run: cd frontend && yarn install && yarn build # Ensure the frontend directory is used
             - uses: FirebaseExtended/action-hosting-deploy@v0
               with:
                   repoToken: ${{ secrets.GITHUB_TOKEN }}
                   firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_INHAGIANHUB }}
                   channelId: live
                   projectId: inhagianhub
-                  entryPoint: frontend/firebase.json # Specify the path to the firebase.json file
+                  # EntryPoint is not typically necessary for Firebase Hosting deployments
+                  # If it's needed because firebase.json is in the frontend folder, uncomment below:
+                  # entryPoint: frontend/firebase.json
