@@ -170,7 +170,7 @@ const App: React.FC = () => {
       )}
 
       <div id="unknown-reservations">
-        <h2>🕓 시간 미상 예약</h2>
+        <h2>🕓 시간 미정 예약</h2>
         <div id="unknown-list">
           {unknownTimeReservations.length === 0 && <p>없음</p>}
           {unknownTimeReservations.map((r, i) => (

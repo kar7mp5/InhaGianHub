@@ -89,7 +89,7 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  border: 0.0625rem solid #ccc; /* 1px */
+  border: 0.0625rem solid #000000; /* 1px */
   background-color: white;
   overflow: hidden;
 }
@@ -111,8 +111,7 @@ body {
   text-align: center;
   font-weight: bold;
   padding: 0.625rem 0;
-  border-left: 0.0625rem solid #ccc;
-  border-right: 0.0625rem solid #ccc;
+  border-left: 0.0625rem solid #000000;
 }
 
 /* Calendar Body */
@@ -134,7 +133,7 @@ body {
   padding-bottom: 0.6rem;
   font-size: 0.75rem;
   text-align: center;
-  border-bottom: 0.0625rem solid #ddd;
+  border-bottom: 0.0625rem solid #000000;
   height: var(--time-label-height); /* Time label height defined here */
 }
 
@@ -147,26 +146,28 @@ body {
 .facility {
   flex: 1;
   position: relative;
-  border-left: 0.0625rem solid #ccc;
-  border-right: 0.0625rem solid #ccc;
-  background-image: repeating-linear-gradient(0deg, #ccc, #ccc 1px, transparent 1px, transparent var(--time-label-height));
+  border-left: 0.0625rem solid #000000;
+  background-image: repeating-linear-gradient(0deg, #000000, #000000 1px, transparent 1px, transparent var(--time-label-height));
   background-size: 100% var(--time-label-height); /* Each row has a 1-hour horizontal line */
 }
 
 /* Event Blocks */
 .reservation-block {
   position: absolute;
-  left: 0.3rem;
-  right: 0.3rem;
+  font-weight: bold;
+  border: 1px solid #FFFFFF;
+  /* left: 0.3rem;
+  right: 0.3rem; */
   background-color: rgba(0, 123, 255, 0.7);
   color: white;
-  border-radius: 0.25rem;
+  /* border-radius: 0.25rem; */
   padding: 0.125rem;
   font-size: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  width: 100%;
 }
 
 /* Optional: Highlight for 'pending' status */
@@ -175,10 +176,10 @@ body {
   color: #000;
 }
 
-.reservation-block.dg { background-color: rgba(0, 123, 255, 0.7); }     /* 대강당 */
-.reservation-block.jg { background-color: rgba(40, 167, 69, 0.7); }     /* 중강당 */
-.reservation-block.sg { background-color: rgba(255, 193, 7, 0.7); }     /* 소강당 */
-.reservation-block.n5 { background-color: rgba(220, 53, 69, 0.7); }     /* 5남소강당 */
+.reservation-block.dg { background-color: rgba(0, 123, 255, 0.9); }     /* 대강당 */
+.reservation-block.jg { background-color: rgba(40, 167, 69, 0.9); }     /* 중강당 */
+.reservation-block.sg { background-color: rgba(255, 165, 0, 0.9); }     /* 소강당 */
+.reservation-block.n5 { background-color: rgba(220, 53, 69, 0.9); }     /* 5남소강당 */
 
 /* Box sizing */
 * {
