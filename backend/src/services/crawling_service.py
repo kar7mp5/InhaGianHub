@@ -27,7 +27,6 @@ KEY_TRANSLATION = {
     "end_time": "end_time"
 }
 
-
 def format_date(raw_date: str) -> str:
     """Converts raw date like '20250514' to '2025-05-14'.
 
@@ -195,10 +194,9 @@ def crawl_facility_reservations(db_unused, facility_name: str) -> dict:
             "print_link": print_link or ""
         }
 
+        popup_data = {}  # Initialize popup_data before using it
         if print_link:
-            fetch_popup_details(print_link)
-        else:
-            popup_data = {}
+            popup_data = fetch_popup_details(print_link)  # Populate if print link exists
 
         doc_id_final = doc_id if existing else f"{facility_name}_{date}_{place}_{event}"
         crawled_ids.add(doc_id_final)
@@ -211,7 +209,7 @@ def crawl_facility_reservations(db_unused, facility_name: str) -> dict:
                 skipped_count += 1
         else:
             upsert_reservation(doc_id_final, doc_data)
-            if popup_data:
+            if popup_data:  # Only add popup details if there's data
                 add_popup_details(doc_id_final, popup_data)
             saved_count += 1
 

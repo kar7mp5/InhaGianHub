@@ -1,3 +1,8 @@
+:root {
+  --time-label-height: 2rem; /* Dynamic height for time labels */
+  --hour-height: 2rem; /* Height per hour slot (adjust this as needed) */
+}
+
 /* General layout */
 body {
   margin: 0;
@@ -36,6 +41,7 @@ body {
   font-size: 1.125rem;
   margin-bottom: 1rem;
 }
+
 .dots::after {
   content: '';
   display: inline-block;
@@ -43,6 +49,7 @@ body {
   text-align: left;
   animation: dots 1s steps(3, end) infinite;
 }
+
 @keyframes dots {
   0%, 20% { content: ''; }
   40% { content: '.'; }
@@ -55,11 +62,13 @@ body {
   padding: 1rem;
   background-color: white;
 }
+
 #unknown-reservations h2 {
   font-size: 1.125rem;
   margin-bottom: 0.75rem;
   color: #333;
 }
+
 #unknown-list .unknown-item {
   margin-bottom: 0.5rem;
   padding: 0.5rem 0.75rem;
@@ -75,6 +84,7 @@ body {
   flex-grow: 1;
   display: flex;
 }
+
 #calendar-container {
   flex: 1;
   display: flex;
@@ -90,10 +100,12 @@ body {
   background-color: #e0e0e0;
   border-bottom: 0.125rem solid #333; /* 2px */
 }
+
 .time-label-header {
   width: 3.75rem; /* 60px */
   flex-shrink: 0;
 }
+
 .facility-title {
   flex: 1;
   text-align: center;
@@ -109,11 +121,13 @@ body {
   display: flex;
   overflow: hidden;
 }
+
 .time-labels {
   width: 3.75rem;
   display: flex;
   flex-direction: column;
 }
+
 .time-label {
   align-items: center;
   padding-top: 0.6rem;
@@ -121,6 +135,7 @@ body {
   font-size: 0.75rem;
   text-align: center;
   border-bottom: 0.0625rem solid #ddd;
+  height: var(--time-label-height); /* Time label height defined here */
 }
 
 /* Facilities */
@@ -128,11 +143,14 @@ body {
   display: flex;
   flex-grow: 1;
 }
+
 .facility {
   flex: 1;
   position: relative;
   border-left: 0.0625rem solid #ccc;
   border-right: 0.0625rem solid #ccc;
+  background-image: repeating-linear-gradient(0deg, #ccc, #ccc 1px, transparent 1px, transparent var(--time-label-height));
+  background-size: 100% var(--time-label-height); /* Each row has a 1-hour horizontal line */
 }
 
 /* Event Blocks */
@@ -161,7 +179,6 @@ body {
 .reservation-block.jg { background-color: rgba(40, 167, 69, 0.7); }     /* 중강당 */
 .reservation-block.sg { background-color: rgba(255, 193, 7, 0.7); }     /* 소강당 */
 .reservation-block.n5 { background-color: rgba(220, 53, 69, 0.7); }     /* 5남소강당 */
-
 
 /* Box sizing */
 * {
