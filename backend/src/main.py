@@ -2,13 +2,19 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 
 from controllers import router
 from services import crawl_facility_reservations
 import traceback
+import os
 
 # List of facility names for periodic crawling
 FACILITIES = ["대강당", "중강당", "소강당", "5남소강당"]
+
+# Get frontend origin from env
+frontend_origin = os.getenv("FRONTEND_ORIGIN", "*")
+# is_dev = os.getenv("ENV", "dev") == "dev"
 
 # Background scheduler instanceconfig_loader
 scheduler = BackgroundScheduler()
@@ -29,10 +35,11 @@ def scheduled_crawling():
 async def lifespan(app: FastAPI):
     """Manages the startup and shutdown lifecycle of the FastAPI app."""
     print("[Startup] Running first crawl manually...")
-    scheduled_crawling()  # Trigger first crawl immediately
+    # scheduled_crawling()  # Trigger first crawl immediately
 
-    # Set the scheduled crawling interval
-    scheduler.add_job(scheduled_crawling, "interval", minutes=30)  # Schedule subsequent crawls
+    # 🕘 Only allow crawling from 09:00 to 17:30 (inclusive), every 30 min
+    trigger = CronTrigger(minute='0,30', hour='9-17')
+    scheduler.add_job(scheduled_crawling, trigger)
     scheduler.start()
     print("[Startup] Background scheduler started.")
     
@@ -43,12 +50,15 @@ async def lifespan(app: FastAPI):
 
 def create_app():
     """Creates and configures the FastAPI application."""
-    app = FastAPI(lifespan=lifespan)
-
+    app = FastAPI(
+        lifespan=lifespan,
+        docs_url=None, # deploy setting
+        redoc_url=None
+    )
     # Enable CORS for all origins
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=[frontend_origin],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

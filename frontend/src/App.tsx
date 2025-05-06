@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import '@/App.css';
 
+const api = import.meta.env.VITE_API_BASE_URL;
+
 const FACILITIES = ['대강당', '중강당', '소강당', '5남소강당'];
 
 /**
@@ -24,6 +26,7 @@ const App: React.FC = () => {
   const [reservations, setReservations] = useState<Reservation[]>([]); // All reservations for the date
 
   useEffect(() => {
+    document.title = "인하대학교 강당 예약 시스템";
     const today = new Date().toISOString().split('T')[0];
     setSelectedDate(today);
     loadSchedule(today);
@@ -35,9 +38,8 @@ const App: React.FC = () => {
   const loadSchedule = async (date: string) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/reservations?date=${date}`);
+      const response = await fetch(`${api}/api/reservations?date=${date}`);
       const data = await response.json();
-
       if (!data.success) {
         console.error("Failed to fetch reservations:", data.error);
         return;
@@ -48,9 +50,10 @@ const App: React.FC = () => {
       for (const reservation of fetchedReservations) {
         let { start_time, end_time } = reservation;
 
+        console.log(start_time, end_time);
         // Fallback to popup details if time is missing
         if (!start_time || !end_time) {
-          const detailsRes = await fetch(`/api/reservations/${reservation.id}/details`);
+          const detailsRes = await fetch(`${api}/api/reservations/${reservation.id}/details`);
           const detailsJson = await detailsRes.json();
           const times = extractTimeDetails(detailsJson.data);
           start_time = times.start_time;
