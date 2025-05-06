@@ -2,6 +2,36 @@
 
 ## Front-End
 
+### Step 1: Login Firebase
+
+```bash
+firebase login
+```
+
+### Step 2: Initialize Project
+
+```bash
+firebase init
+```
+
+### Step 3: Add the API path
+
+```env
+VITE_API_BASE_URL=https://your-cloudrun-backend.a.run.app
+```
+
+### Step 4: Build Front-end Project
+
+```bash
+yarn build
+```
+
+### Step 5: Depoly to Firebase
+
+```bash
+firebase deploy
+```
+
 ## Back-End
 
 ### Step 1: Upload Secret Manager
@@ -34,5 +64,7 @@ gcloud run deploy inhagianhubapi \
   --platform managed \
   --port 8080 \
   --region asia-northeast3 \
+  --allow-unauthenticated \
+  --set-env-vars FRONTEND_ORIGIN=https://inhagianhub-14f8d.web.app \
   --set-secrets FIREBASE_CREDENTIALS=firebase-credentials:latest
 ```
