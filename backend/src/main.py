@@ -10,7 +10,7 @@ import traceback
 # List of facility names for periodic crawling
 FACILITIES = ["대강당", "중강당", "소강당", "5남소강당"]
 
-# Background scheduler instance
+# Background scheduler instanceconfig_loader
 scheduler = BackgroundScheduler()
 
 def scheduled_crawling():
@@ -29,7 +29,7 @@ def scheduled_crawling():
 async def lifespan(app: FastAPI):
     """Manages the startup and shutdown lifecycle of the FastAPI app."""
     print("[Startup] Running first crawl manually...")
-    # scheduled_crawling()  # Trigger first crawl immediately
+    scheduled_crawling()  # Trigger first crawl immediately
 
     # Set the scheduled crawling interval
     scheduler.add_job(scheduled_crawling, "interval", minutes=30)  # Schedule subsequent crawls
