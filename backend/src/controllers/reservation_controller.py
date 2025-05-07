@@ -8,9 +8,11 @@ from cruds import (
 import re
 from datetime import datetime
 
+FACILITIES = ["대강당", "중강당", "소강당", "5남소강당"]
+
 router = APIRouter()
 
-@router.post("/crawl/{facility_name}")
+@router.post("/crawl/{facility_name:regex(^(?!all$).+)}")
 def crawl_facility(facility_name: str):
     """Trigger crawling for the specified facility and format the response.
 
@@ -34,6 +36,14 @@ def crawl_facility(facility_name: str):
         "saved_count": result.get("saved_count", 0)
     }
 
+@router.post("/crawl/all")
+def crawl_all():
+    for facility in FACILITIES:
+        print(facility)
+        result = crawl_facility_reservations(None, facility)
+        if result.get("status") == "error":
+            continue
+    return {"status": "ok"}
 
 @router.get("/api/reservations")
 def get_reservations(facility_name: str = None, date: str = None):
