@@ -1,8 +1,11 @@
 # InhaGianHub
 
+[Service Link](https://inhagianhub-14f8d.web.app/)
+
 ## Table of Contents
 
 -   [Getting Started](#getting-started)
+-   [CONTRIBUTING](#contributing)
 -   [LICENSE](#license)
 
 ---
@@ -60,6 +63,12 @@ Start the FastAPI development server:
 ```bash
 uvicorn app.main:app --reload
 ```
+
+---
+
+## CONTRIBUTING
+
+If you are curious about how to collaborate, please refer to [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ---
 
