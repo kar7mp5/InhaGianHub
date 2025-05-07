@@ -19,6 +19,8 @@ A unified platform to view reservation status for Inha University facilities in 
 
 **InhaGianHub** is a web service that visually displays the reservation status of various lecture halls and auditoriums managed by the Student Support Team at Inha University (Main Auditorium, Medium Auditorium, Small Auditorium, and 5th South Small Auditorium).
 
+![result image](./docs/result.png)
+
 ---
 
 ## Getting Started (Local Development)
