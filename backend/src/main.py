@@ -5,7 +5,7 @@ from controllers import router
 import os
 
 # Get frontend origin from env
-frontend_origin = "*" # os.getenv("FRONTEND_ORIGIN", "*")
+frontend_origin = os.getenv("FRONTEND_ORIGIN", "*")
 # is_dev = os.getenv("ENV", "dev") == "dev"
 
 def create_app():
