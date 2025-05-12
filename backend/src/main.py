@@ -5,14 +5,14 @@ from controllers import router
 import os
 
 # Get frontend origin from env
-frontend_origin = os.getenv("FRONTEND_ORIGIN", "*")
+frontend_origin = "*" # os.getenv("FRONTEND_ORIGIN", "*")
 # is_dev = os.getenv("ENV", "dev") == "dev"
 
 def create_app():
     """Creates and configures the FastAPI application."""
     app = FastAPI(
-        docs_url=None, # deploy setting
-        redoc_url=None
+        # docs_url=None, # deploy setting
+        # redoc_url=None
     )
     # Enable CORS for all origins
     app.add_middleware(

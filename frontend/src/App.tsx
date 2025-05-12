@@ -3,92 +3,84 @@ import '@/App.css';
 
 const api = import.meta.env.VITE_API_BASE_URL;
 
-const FACILITIES = ['대강당', '중강당', '소강당', '5남소강당'];
+// Mapping of Korean facility names to backend room_id
+const FACILITY_MAP: Record<string, string> = {
+  '대강당': 'daegangdang',
+  '중강당': 'junggangdang',
+  '소강당': 'sogangdang',
+  '5남소강당': '5nam_sogangdang',
+};
 
-/**
- * Type definition for a single reservation entry.
- */
+const FACILITIES = Object.keys(FACILITY_MAP);
+
+/** Type for a single reservation */
 interface Reservation {
   id: string;
-  facility_name: string;
+  room_id: string;
   event: string;
   start_time?: string;
   end_time?: string;
   approval?: string;
 }
 
-/**
- * Main App component.
- */
 const App: React.FC = () => {
-  const [selectedDate, setSelectedDate] = useState<string>(''); // Currently selected date
-  const [loading, setLoading] = useState<boolean>(false); // Whether data is loading
-  const [reservations, setReservations] = useState<Reservation[]>([]); // All reservations for the date
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
 
   useEffect(() => {
-    document.title = "인하대학교 강당 예약 시스템";
     const today = new Date().toISOString().split('T')[0];
     setSelectedDate(today);
     loadSchedule(today);
   }, []);
 
   /**
-   * Fetches reservation data for the selected date from backend API.
+   * Load all reservations from all rooms for a given date.
    */
   const loadSchedule = async (date: string) => {
     setLoading(true);
     try {
-      const response = await fetch(`${api}/api/reservations?date=${date}`);
-      const data = await response.json();
-      if (!data.success) {
-        console.error("Failed to fetch reservations:", data.error);
-        return;
-      }
+      const allReservations: Reservation[] = [];
 
-      const fetchedReservations = data.data;
+      for (const facilityName of FACILITIES) {
+        const room_id = FACILITY_MAP[facilityName];
+        const res = await fetch(`${api}/api/reservations?room_id=${room_id}&date=${date}`);
+        const json = await res.json();
 
-      for (const reservation of fetchedReservations) {
-        let { start_time, end_time } = reservation;
-
-        console.log(start_time, end_time);
-        // Fallback to popup details if time is missing
-        if (!start_time || !end_time) {
-          const detailsRes = await fetch(`${api}/api/reservations/${reservation.id}/details`);
-          const detailsJson = await detailsRes.json();
-          const times = extractTimeDetails(detailsJson.data);
-          start_time = times.start_time;
-          end_time = times.end_time;
+        if (!json.success) {
+          console.error(`❌ ${room_id} fetch failed:`, json.error);
+          continue;
         }
 
-        if (start_time && end_time) {
-          reservation.start_time = start_time.trim();
-          reservation.end_time = end_time.trim();
+        const fetched: Reservation[] = json.data;
+        for (const r of fetched) {
+          if (!r.start_time || !r.end_time) {
+            const detailRes = await fetch(`${api}/api/reservations/${r.room_id}/${r.id}/details`);
+            const detailJson = await detailRes.json();
+            const times = extractTimeDetails(detailJson.data);
+            r.start_time = times.start_time?.trim();
+            r.end_time = times.end_time?.trim();
+          }
+          allReservations.push(r);
         }
       }
 
-      setReservations(fetchedReservations);
-    } catch (error) {
-      console.error("Error loading schedule:", error);
+      setReservations(allReservations);
+    } catch (e) {
+      console.error("🚨 Error loading schedule:", e);
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Extracts start_time and end_time from popup details.
-   */
-  const extractTimeDetails = (dataArray: any[]) => {
+  /** Extracts time from popup detail array */
+  const extractTimeDetails = (data: any[]) => {
     let start_time = null;
     let end_time = null;
-
-    for (const item of dataArray) {
-      if (item.key === "start_time") {
-        start_time = item.value;
-      } else if (item.key === "end_time") {
-        end_time = item.value;
-      }
+    for (const item of data) {
+      if (item.key === 'start_time') start_time = item.value;
+      if (item.key === 'end_time') end_time = item.value;
     }
-
     return { start_time, end_time };
   };
 
@@ -98,12 +90,10 @@ const App: React.FC = () => {
     loadSchedule(date);
   };
 
-  /**
-   * Returns reservations for a specific facility that have valid start and end times.
-   */
   const getReservationsForFacility = (facilityName: string) => {
+    const room_id = FACILITY_MAP[facilityName];
     return reservations.filter(
-      (r) => r.facility_name === facilityName && r.start_time && r.end_time
+      (r) => r.room_id === room_id && r.start_time && r.end_time
     );
   };
 
@@ -111,48 +101,20 @@ const App: React.FC = () => {
     (r) => !r.start_time || !r.end_time
   );
 
-  // Define baseHour outside both functions
-  const baseHour = 9; // Starting from 9:00 AM
-  const slotHeightInRem = 2; // Each time slot has a height of 3rem (adjust this based on your actual CSS)
+  const baseHour = 9;
+  const slotHeightInRem = 2;
 
-  /**
-   * Calculates the top offset for the reservation block based on absolute values, starting at 9:00 AM.
-   * @param start_time The start time of the event in HH:MM format.
-   * @returns The calculated top position in rem units.
-   */
   const calculateTop = (start_time: string): number => {
-    const [startH, startM] = start_time.split(":").map(Number);
-
-    // Convert the start time to minutes from 9:00 AM (base time)
-    const startTimeInMinutes = (startH - baseHour) * 60 + startM;
-
-    // Calculate the top position in rem units based on time
-    const topPositionInRem = (startTimeInMinutes / 60) * slotHeightInRem;
-
-    return topPositionInRem;
+    const [h, m] = start_time.split(':').map(Number);
+    return ((h - baseHour) * 60 + m) / 60 * slotHeightInRem;
   };
 
-  /**
-   * Calculates the height of the reservation block based on its start and end time.
-   * This function calculates the height based on absolute time values.
-   * @param start_time The start time of the event in HH:MM format.
-   * @param end_time The end time of the event in HH:MM format.
-   * @returns The calculated height of the reservation block in rem units.
-   */
   const calculateHeight = (start_time: string, end_time: string): number => {
-    const [startH, startM] = start_time.split(":").map(Number);
-    const [endH, endM] = end_time.split(":").map(Number);
-
-    // Move baseHour, slotHeightInRem, and totalMinutesInDay inside the function
-    const totalMinutesInDay = 13 * 60; // Total minutes from 9 AM to 10 PM (780 minutes)
-
-    // Calculate the duration of the event in minutes
-    const durationMinutes = ((endH - startH) * 60 + (endM - startM));
-
-    // Calculate the height based on the duration, scaled to the total day height
-    const heightInRem = (durationMinutes / totalMinutesInDay) * 13 * slotHeightInRem;
-
-    return heightInRem;
+    const [h1, m1] = start_time.split(':').map(Number);
+    const [h2, m2] = end_time.split(':').map(Number);
+    const total = 13 * 60;
+    const duration = (h2 - h1) * 60 + (m2 - m1);
+    return (duration / total) * 13 * slotHeightInRem;
   };
 
   return (
@@ -178,7 +140,7 @@ const App: React.FC = () => {
           {unknownTimeReservations.length === 0 && <p>없음</p>}
           {unknownTimeReservations.map((r, i) => (
             <div key={i} className="unknown-item">
-              [{r.facility_name}] {r.event}
+              [{r.room_id}] {r.event}
             </div>
           ))}
         </div>
@@ -189,9 +151,7 @@ const App: React.FC = () => {
           <div className="facility-header">
             <div className="time-label-header"></div>
             {FACILITIES.map((name) => (
-              <div key={name} className="facility-title">
-                {name}
-              </div>
+              <div key={name} className="facility-title">{name}</div>
             ))}
           </div>
 
@@ -203,45 +163,38 @@ const App: React.FC = () => {
             </div>
 
             <div className="facility-columns">
-              {FACILITIES.map((facility) => (
-                <div key={facility} className="facility" data-name={facility}>
-                  {getReservationsForFacility(facility).map((res, i) => {
-                    if (!res.start_time || !res.end_time) {
-                      console.warn(
-                        `Skipping reservation with missing time data: ${
-                          res?.id || 'unknown'
-                        }`
-                      );
-                      return null;
-                    }
-
-                    // Handling facility class
-                    const facilityClass =
-                      {
+              {FACILITIES.map((facility) => {
+                const list = getReservationsForFacility(facility);
+                const room_id = FACILITY_MAP[facility];
+                return (
+                  <div key={facility} className="facility" data-name={facility}>
+                    {list.map((res, i) => {
+                      if (!res.start_time || !res.end_time) return null;
+                      const cls = {
                         '대강당': 'dg',
                         '중강당': 'jg',
                         '소강당': 'sg',
                         '5남소강당': 'n5',
-                      }[res.facility_name] || 'default';
-
-                    return (
-                      <div
-                        key={res.id || i}
-                        className={`reservation-block ${
-                          res.approval !== '승인' ? 'pending' : ''
-                        } ${facilityClass}`}
-                        style={{
-                          top: `${calculateTop(res.start_time!)}rem`,
-                          height: `${calculateHeight(res.start_time!, res.end_time!)}rem`,
-                        }}
-                        title={res.event}
-                      >
-                        {res.event}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
+                      }[facility] || 'default';
+                      return (
+                        <div
+                          key={res.id}
+                          className={`reservation-block ${
+                            res.approval !== '승인' ? 'pending' : ''
+                          } ${cls}`}
+                          style={{
+                            top: `${calculateTop(res.start_time)}rem`,
+                            height: `${calculateHeight(res.start_time, res.end_time)}rem`,
+                          }}
+                          title={res.event}
+                        >
+                          {res.event}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

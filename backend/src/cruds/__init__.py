@@ -10,5 +10,6 @@ from .firestore_dao import (
     upsert_reservation, 
     find_reservation, 
     add_popup_details, 
-    sync_reservations
+    sync_reservations,
+    hash_reservation
 )

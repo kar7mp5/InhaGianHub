@@ -2,194 +2,170 @@ from firebase import db
 import hashlib
 import warnings
 
-# Suppress Firestore warning about positional arguments in 'where'
+# Suppress Firestore warning about positional arguments
 warnings.filterwarnings("ignore", message="Detected filter using positional arguments")
 
 
-def upsert_reservation(doc_id: str, data: dict):
-    """Creates or updates a reservation document in Firestore.
+def upsert_reservation(room_id: str, reservation_id: str, data: dict):
+    """
+    Inserts or updates a reservation document under a specific room.
 
     Args:
-        doc_id: The unique Firestore document ID.
-        data: A dictionary containing reservation data.
+        room_id (str): The Firestore document ID of the room.
+        reservation_id (str): The Firestore document ID of the reservation.
+        data (dict): Reservation data to be written.
 
     Returns:
         None
     """
-    db.collection("reservations").document(doc_id).set(data)
+    db.collection("rooms").document(room_id).collection("reservations").document(reservation_id).set(data)
 
 
-def add_popup_details(reservation_id: str, details: dict):
-    """Stores popup details as a subcollection under the reservation.
+def add_popup_details(room_id: str, reservation_id: str, details: dict):
+    """
+    Adds detailed popup information as a subcollection under a reservation.
 
     Args:
-        reservation_id: Firestore document ID of the parent reservation.
-        details: A dictionary where keys are field names and values are the detail values.
+        room_id (str): Parent room document ID.
+        reservation_id (str): Parent reservation document ID.
+        details (dict): Dictionary of key-value pairs to be stored.
 
     Returns:
         None
     """
-    ref = db.collection("reservations").document(reservation_id).collection("popup_details")
+    ref = db.collection("rooms").document(room_id).collection("reservations").document(reservation_id).collection("popup_details")
     for k, v in details.items():
         ref.document(k).set({"key": k, "value": v})
 
 
-def find_reservation(facility_name: str, date: str, place: str, event: str):
-    """Finds a reservation document by its identifying fields.
+def find_reservation(room_id: str, date: str, event: str):
+    """
+    Searches for a reservation based on room, date, and event.
 
     Args:
-        facility_name: Name of the facility.
-        date: Reservation date in 'YYYY-MM-DD' format.
-        place: Location or room name.
-        event: Event name.
+        room_id (str): Room identifier.
+        date (str): Reservation date in YYYY-MM-DD format.
+        event (str): Name of the event.
 
     Returns:
-        A tuple of (doc_id, doc_data) if found; otherwise, (None, None).
+        Tuple[str, dict]: (Document ID, Reservation data) if found, otherwise (None, None).
     """
-    query = db.collection("reservations") \
-        .where(field_path="facility_name", op_string="==", value=facility_name) \
-        .where(field_path="date", op_string="==", value=date) \
-        .where(field_path="place", op_string="==", value=place) \
-        .where(field_path="event", op_string="==", value=event) \
-        .limit(1) \
-        .stream()
-
+    query = db.collection("rooms").document(room_id).collection("reservations") \
+        .where("date", "==", date).where("event", "==", event).limit(1).stream()
     for doc in query:
         return doc.id, doc.to_dict()
     return None, None
 
 
 def get_all_reservations():
-    """Retrieves all reservation documents.
+    """
+    Retrieves all reservations across all rooms.
 
     Returns:
-        A list of dictionaries, each with reservation data and its document ID.
+        List[dict]: List of all reservations including room ID and reservation ID.
     """
     reservations = []
-    docs = db.collection("reservations").stream()
-    for doc in docs:
-        data = doc.to_dict()
-        data["id"] = doc.id
-        reservations.append(data)
+    rooms = db.collection("rooms").stream()
+    for room in rooms:
+        room_id = room.id
+        sub = db.collection("rooms").document(room_id).collection("reservations").stream()
+        for resv in sub:
+            data = resv.to_dict()
+            data["id"] = resv.id
+            data["room_id"] = room_id
+            reservations.append(data)
     return reservations
 
 
-def get_reservations_by_filter(facility_name=None, date=None):
-    """Queries reservation documents using a single Firestore filter and applies other filters in Python.
+def get_reservations_by_filter(room_id=None, date=None):
+    """
+    Retrieves filtered reservations. If room_id is provided, queries Firestore.
+    Otherwise, filters all reservations in memory.
 
     Args:
-        facility_name: Optional; name of the facility to filter by.
-        date: Optional; reservation date in 'YYYY-MM-DD' format to filter by.
+        room_id (str, optional): Room identifier to filter by.
+        date (str, optional): Date to filter reservations by.
 
     Returns:
-        A list of filtered reservation documents, each as a dictionary with an 'id' field.
+        List[dict]: List of filtered reservation dictionaries.
     """
-    query = db.collection("reservations")
-
-    # Apply only one Firestore-level filter to avoid index requirement
-    if facility_name:
-        query = query.where("facility_name", "==", facility_name)
-    elif date:
-        query = query.where("date", "==", date)
-
     results = []
-    for doc in query.stream():
-        data = doc.to_dict()
-        # Python-side filtering
-        if facility_name and data.get("facility_name") != facility_name:
-            continue
-        if date and data.get("date") != date:
-            continue
-        data["id"] = doc.id
-        results.append(data)
-
+    if room_id:
+        query = db.collection("rooms").document(room_id).collection("reservations")
+        if date:
+            query = query.where("date", "==", date)
+        docs = query.stream()
+        for doc in docs:
+            data = doc.to_dict()
+            data["id"] = doc.id
+            data["room_id"] = room_id
+            results.append(data)
+    else:
+        results = get_all_reservations()
+        if date:
+            results = [r for r in results if r.get("date") == date]
     return results
 
 
-
-def get_popup_details_by_reservation_id(reservation_id: str):
-    """Fetches popup detail documents for a given reservation.
+def get_popup_details_by_reservation_id(room_id: str, reservation_id: str):
+    """
+    Fetches popup details for a specific reservation.
 
     Args:
-        reservation_id: Firestore document ID of the reservation.
+        room_id (str): Room identifier.
+        reservation_id (str): Reservation identifier.
 
     Returns:
-        A list of dictionaries containing popup detail data.
+        List[dict]: List of detail entries as dictionaries with key/value.
     """
-    collection_ref = db.collection("reservations") \
-                       .document(reservation_id) \
-                       .collection("popup_details")
-
-    return [{"key": doc.id, **doc.to_dict()} for doc in collection_ref.stream()]
+    ref = db.collection("rooms").document(room_id).collection("reservations").document(reservation_id).collection("popup_details")
+    return [{"key": doc.id, **doc.to_dict()} for doc in ref.stream()]
 
 
-def delete_reservation(doc_id: str):
-    """Deletes a reservation document.
+def delete_reservation(room_id: str, reservation_id: str):
+    """
+    Deletes a reservation document.
 
     Args:
-        doc_id: The Firestore document ID.
+        room_id (str): Room identifier.
+        reservation_id (str): Reservation identifier.
 
     Returns:
         None
     """
-    db.collection("reservations").document(doc_id).delete()
-
-
-def get_reservations_by_facility(facility_name: str):
-    """Retrieves all reservations for a specific facility.
-
-    Args:
-        facility_name: Name of the facility.
-
-    Returns:
-        A list of dictionaries, each with reservation data and document ID.
-    """
-    return [
-        {"id": doc.id, **doc.to_dict()}
-        for doc in db.collection("reservations")
-                     .where(field_path="facility_name", op_string="==", value=facility_name)
-                     .stream()
-    ]
+    db.collection("rooms").document(room_id).collection("reservations").document(reservation_id).delete()
 
 
 def hash_reservation(resv: dict) -> str:
-    """Generates a hash to uniquely identify a reservation.
+    """
+    Generates a SHA-256 hash based on reservation content.
 
     Args:
-        resv: Reservation dictionary.
+        resv (dict): Reservation dictionary.
 
     Returns:
-        A SHA-256 hash string based on key fields.
+        str: SHA-256 hash string.
     """
-    key_fields = [resv.get("date", ""), resv.get("place", ""), resv.get("event", "")]
+    key_fields = [resv.get("date", ""), resv.get("event", "")]
     return hashlib.sha256("|".join(key_fields).encode()).hexdigest()
 
 
-def sync_reservations(facility_name: str, date: str, crawled_ids: set[str]) -> int:
-    """Deletes outdated reservations from Firestore that are no longer in the current crawl.
-
-    This version avoids composite Firestore indexes by using only one filter and performing
-    remaining filtering in Python.
+def sync_reservations(room_id: str, date: str, crawled_ids: set[str]) -> int:
+    """
+    Removes outdated reservations that are no longer valid.
 
     Args:
-        facility_name: Name of the facility being crawled.
-        date: The current date of interest (YYYY-MM-DD).
-        crawled_ids: Set of document IDs that were crawled and considered valid.
+        room_id (str): Room identifier.
+        date (str): Date to match against.
+        crawled_ids (set[str]): Set of valid IDs that should be kept.
 
     Returns:
-        The number of documents deleted from Firestore.
+        int: Count of deleted reservations.
     """
-    query = db.collection("reservations").where("facility_name", "==", facility_name)
-
+    query = db.collection("rooms").document(room_id).collection("reservations").where("date", "==", date)
     delete_count = 0
     for doc in query.stream():
-        data = doc.to_dict()
-        # Apply remaining filters in Python to avoid Firestore index errors
-        if data.get("date") != date:
-            continue
         if doc.id not in crawled_ids:
             doc.reference.delete()
             delete_count += 1
-
     return delete_count
-
