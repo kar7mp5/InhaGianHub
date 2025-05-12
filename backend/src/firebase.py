@@ -10,7 +10,7 @@ Initializes Firebase Firestore connection depending on environment.
 - In production: loads JSON string from FIREBASE_CREDENTIALS environment variable.
 """
 
-ENV = os.getenv("ENV", "dev")  # default to development
+ENV = os.getenv("ENV", "publish")  # default to development
 cred_dict = None
 
 if ENV == "dev":
